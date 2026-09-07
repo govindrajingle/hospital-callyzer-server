@@ -1,0 +1,33 @@
+const Joi = require("joi");
+
+const createHospitalSchema = Joi.object({
+  hospitalName: Joi.string().trim().max(200).required(),
+
+  hospitalCode: Joi.string().trim().max(50).required(),
+
+  address: Joi.string().trim().allow("", null),
+
+  city: Joi.string().trim().max(100).allow("", null),
+
+  state: Joi.string().trim().max(100).allow("", null),
+});
+
+const validateCreateHospital = (req, res, next) => {
+  const { error } = createHospitalSchema.validate(req.body, {
+    abortEarly: false,
+  });
+
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: error.details.map((detail) => detail.message),
+    });
+  }
+
+  next();
+};
+
+module.exports = {
+  validateCreateHospital,
+};
