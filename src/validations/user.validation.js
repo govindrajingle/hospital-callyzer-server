@@ -18,6 +18,8 @@ const validateCreateUser = (req, res, next) => {
       errors: error.details.map((detail) => detail.message),
     });
   }
+
+  next();
 };
 
 module.exports = {

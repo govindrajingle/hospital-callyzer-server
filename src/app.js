@@ -2,6 +2,7 @@ const express = require("express");
 
 const hospitalRoutes = require("./routes/hospital.routes");
 const userRoutes = require("./routes/user.routes");
+const rolemasterRoutes = require("./routes/rolemaster.routes");
 const requestLogger = require("./middleware/requestLogger");
 const errorHandler = require("./middleware/errorHandler");
 
@@ -19,6 +20,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/hospitals", hospitalRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/rolemasters", rolemasterRoutes);
 
 app.use(errorHandler);
 
