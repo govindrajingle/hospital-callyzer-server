@@ -1,4 +1,5 @@
 const requestLogger = (req, res, next) => {
+  console.log("data from requestLogger req.body:\t", req.body);
   const startTime = Date.now();
 
   res.on("finish", () => {
