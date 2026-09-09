@@ -3,6 +3,8 @@ const express = require("express");
 const hospitalRoutes = require("./routes/hospital.routes");
 const userRoutes = require("./routes/user.routes");
 const rolemasterRoutes = require("./routes/rolemaster.routes");
+const userRelationshipRoutes = require("./routes/userRelationship.routes");
+
 const requestLogger = require("./middleware/requestLogger");
 const errorHandler = require("./middleware/errorHandler");
 
@@ -14,13 +16,14 @@ app.use(requestLogger);
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Hospital Callyzer API is running",
+    message: "hospital callyzer api is running",
   });
 });
 
 app.use("/api/hospitals", hospitalRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/rolemasters", rolemasterRoutes);
+app.use("/api/role-masters", rolemasterRoutes);
+app.use("/api/users-relationship", userRelationshipRoutes);
 
 app.use(errorHandler);
 

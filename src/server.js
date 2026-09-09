@@ -14,10 +14,10 @@ const startServer = async () => {
     await initializeDatabase();
 
     app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`server running on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Application startup failed");
+    console.error("application startup failed");
     process.exit(1);
   }
 };

@@ -111,11 +111,11 @@ const initializeDatabase = async () => {
 
     await client.query("COMMIT");
 
-    console.log("Database tables initialized successfully");
+    console.log("database tables initialized successfully");
   } catch (error) {
     await client.query("ROLLBACK");
 
-    console.error("Database initialization failed:", error.message);
+    console.error("database initialization failed:", error.message);
 
     throw error;
   } finally {

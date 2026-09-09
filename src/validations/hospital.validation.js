@@ -20,7 +20,7 @@ const validateCreateHospital = (req, res, next) => {
   if (error) {
     return res.status(400).json({
       success: false,
-      message: "Validation failed",
+      message: "validation of create hospital data failed",
       errors: error.details.map((detail) => detail.message),
     });
   }

@@ -113,6 +113,99 @@ RoleMaster {
 }
 ```
 
+### User Relationships
+
+User relationships define the relationship between a **Senior User** and a **Junior User** within a hospital.
+
+#### Endpoints
+
+| Method | Endpoint                                   | Description                                                |
+| ------ | ------------------------------------------ | ---------------------------------------------------------- |
+| POST   | `/users-relationship`                      | Create/Get user relationships with relationship validation |
+| GET    | `/users-relationship`                      | Get all user relationships                                 |
+| GET    | `/users-relationship/senior-id/{seniorId}` | Get user relationship by Senior User ID                    |
+| GET    | `/users-relationship/junior-id/{juniorId}` | Get user relationship by Junior User ID                    |
+
+> **Note:** The `POST` endpoint uses `validateUserRelationship` middleware before calling the user relationship controller.
+
+**Create User Relationship**
+
+```json
+{
+  "hospitalId": "HOSP001",
+  "seniorId": "USER001",
+  "juniorId": "USER002"
+}
+```
+
+**Model**
+
+```text
+UserRelationship {
+  id,
+  hospitalId,
+  seniorId,
+  juniorId,
+  createdAt,
+  updatedAt
+}
+```
+
+#### Relationship Structure
+
+```text
+Hospital 1 ─── N UserRelationship
+User (Senior) 1 ─── N UserRelationship
+User (Junior) 1 ─── N UserRelationship
+```
+
+#### Example
+
+```text
+Hospital
+   │
+   ├── Senior User
+   │      │
+   │      └── UserRelationship
+   │              │
+   │              └── Junior User
+   │
+   └── Junior User
+```
+
+**Get Relationship by Senior User ID**
+
+```text
+GET /users-relationship/senior-id/{seniorId}
+```
+
+Example:
+
+```text
+GET /users-relationship/senior-id/USER001
+```
+
+**Get Relationship by Junior User ID**
+
+```text
+GET /users-relationship/junior-id/{juniorId}
+```
+
+Example:
+
+```text
+GET /users-relationship/junior-id/USER002
+```
+
+**Get All User Relationships**
+
+```text
+GET /users-relationship
+```
+
+Returns all records from the `user_relationship` table.
+
+
 ### Relationships
 
 ```text
