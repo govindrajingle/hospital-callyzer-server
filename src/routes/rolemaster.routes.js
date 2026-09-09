@@ -2,15 +2,18 @@ const express = require("express");
 
 const rolemasterController = require("../controllers/rolemaster.controller");
 const {
-  validateCreateRolemaster,
+    validateCreateRolemaster,
 } = require("../validations/rolemaster.validation");
 
 const router = express.Router();
 
 router.post(
-  "/",
-  validateCreateRolemaster,
-  rolemasterController.createRolemaster,
+    "/",
+    validateCreateRolemaster,
+    rolemasterController.createRolemaster,
 );
+
+router.get("/", rolemasterController.getAllRolemasters);
+router.get("/:id", rolemasterController.getRolemasterById);
 
 module.exports = router;
