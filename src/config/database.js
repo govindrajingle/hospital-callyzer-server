@@ -7,9 +7,9 @@ const pool = new Pool({
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
   // disable this if connection is not working
-  ssl: {
-    rejectUnauthorized: false,
-  }
+  // ssl: {
+  //   rejectUnauthorized: true,
+  // }
 });
 
 const testDatabaseConnection = async () => {

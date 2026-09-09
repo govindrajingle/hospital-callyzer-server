@@ -7,7 +7,7 @@ const createUser = async (user) => {
 
   const values = [hospitalId, roleId, userName, fullName, email];
 
-  const result = await pool.quert(query, values);
+  const result = await pool.query(query, values);
 
   return result.rows[0];
 };

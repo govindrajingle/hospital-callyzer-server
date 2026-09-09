@@ -1,4 +1,4 @@
-# Hospital Management API
+# Hospital Callyzer API
 
 ## Base URL
 
