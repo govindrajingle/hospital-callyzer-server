@@ -3,7 +3,7 @@ const express = require("express");
 const hospitalRoutes = require("./routes/hospital.routes");
 const userRoutes = require("./routes/user.routes");
 const rolemasterRoutes = require("./routes/rolemaster.routes");
-const userRelationshipRoutes = require("./routes/userRelationship.routes");
+const userRelationshipRoutes = require("./routes/userrelationship.routes");
 
 const requestLogger = require("./middleware/requestLogger");
 const errorHandler = require("./middleware/errorHandler");
