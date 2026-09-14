@@ -35,8 +35,68 @@ const getHospitalById = asyncHandler(async (req, res) => {
   });
 });
 
+const updateHospital = asyncHandler(async (req, res) => {
+  const hospital = await hospitalService.updateHospital(
+    req.params.id,
+    req.body,
+  );
+
+  if (!hospital) {
+    const error = new Error("hospital not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "hospital updated successfully",
+    data: hospital,
+  });
+});
+
+const deactivateHospital = asyncHandler(async (req, res) => {
+  const hospital = await hospitalService.setHospitalActiveStatus(
+    req.params.id,
+    false,
+  );
+
+  if (!hospital) {
+    const error = new Error("hospital not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "hospital deactivated successfully",
+    data: hospital,
+  });
+});
+
+const activateHospital = asyncHandler(async (req, res) => {
+  const hospital = await hospitalService.setHospitalActiveStatus(
+    req.params.id,
+    true,
+  );
+
+  if (!hospital) {
+    const error = new Error("hospital not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "hospital activated successfully",
+    data: hospital,
+  });
+});
+
 module.exports = {
   createHospital,
   getAllHospitals,
   getHospitalById,
+  updateHospital,
+  deactivateHospital,
+  activateHospital,
 };

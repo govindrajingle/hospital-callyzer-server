@@ -1,21 +1,36 @@
 const userRelationshipModel = require("../models/userrelationship.model");
 
 const createUserRelationship = async (userRelationshipData) => {
-    return await userRelationshipModel.createUserRelationship(userRelationshipData);
-}
+  return await userRelationshipModel.createUserRelationship(
+    userRelationshipData,
+  );
+};
 
 const getAllUserRelationships = async () => {
-    return await userRelationshipModel.getAllUserRelationships();
-}
+  return await userRelationshipModel.getAllUserRelationships();
+};
 
-const getUserRelationshipByJuniorId = async (juniorId) => {
-    return await userRelationshipModel.getUserRelationshipByJuniorId(juniorId);
-}
+const getUserRelationshipsBySeniorId = async (seniorId) => {
+  return await userRelationshipModel.getUserRelationshipsBySeniorId(seniorId);
+};
 
-const getUserRelationshipBySeniorId = async (seniorId) => {
-    return await userRelationshipModel.getUserRelationshipBySeniorId(seniorId);
-}
+const getUserRelationshipsByJuniorId = async (juniorId) => {
+  return await userRelationshipModel.getUserRelationshipsByJuniorId(juniorId);
+};
+
+const getUserRelationshipById = async (id) => {
+  return await userRelationshipModel.getUserRelationshipById(id);
+};
+
+const deleteUserRelationship = async (id) => {
+  return await userRelationshipModel.deleteUserRelationship(id);
+};
 
 module.exports = {
-    createUserRelationship, getAllUserRelationships, getUserRelationshipBySeniorId, getUserRelationshipByJuniorId
-}
+  createUserRelationship,
+  getAllUserRelationships,
+  getUserRelationshipsBySeniorId,
+  getUserRelationshipsByJuniorId,
+  getUserRelationshipById,
+  deleteUserRelationship,
+};
