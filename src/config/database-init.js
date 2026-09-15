@@ -190,6 +190,32 @@ const initializeDatabase = async () => {
             ON patients(hospital_id, first_name, last_name);
         `);
 
+    // Added to match Sozo's actual paper registration form (street,
+    // locality, landmark, PIN/country, separate residence/office phone
+    // lines, occupation, marital status, treatment plan, referral source,
+    // and consent). ADD COLUMN IF NOT EXISTS keeps this safe to re-run
+    // against a database that already has rows in it.
+    await client.query(`
+            ALTER TABLE patients
+            ADD COLUMN IF NOT EXISTS street VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS locality VARCHAR(150),
+            ADD COLUMN IF NOT EXISTS landmark VARCHAR(150),
+            ADD COLUMN IF NOT EXISTS pin_code VARCHAR(20),
+            ADD COLUMN IF NOT EXISTS country VARCHAR(100),
+            ADD COLUMN IF NOT EXISTS telephone_residence VARCHAR(20),
+            ADD COLUMN IF NOT EXISTS telephone_office VARCHAR(20),
+            ADD COLUMN IF NOT EXISTS fax_number VARCHAR(20),
+            ADD COLUMN IF NOT EXISTS occupation VARCHAR(150),
+            ADD COLUMN IF NOT EXISTS marital_status VARCHAR(20),
+            ADD COLUMN IF NOT EXISTS plan_type VARCHAR(150),
+            ADD COLUMN IF NOT EXISTS plan_expires_date DATE,
+            ADD COLUMN IF NOT EXISTS ailment TEXT,
+            ADD COLUMN IF NOT EXISTS referral_source VARCHAR(50),
+            ADD COLUMN IF NOT EXISTS referral_person_name VARCHAR(200),
+            ADD COLUMN IF NOT EXISTS consent_terms BOOLEAN NOT NULL DEFAULT FALSE,
+            ADD COLUMN IF NOT EXISTS consent_marketing BOOLEAN NOT NULL DEFAULT FALSE;
+        `);
+
     await client.query("COMMIT");
 
     console.log("database tables initialized successfully");
