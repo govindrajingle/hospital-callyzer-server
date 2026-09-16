@@ -7,8 +7,24 @@ const {
   validateResetPassword,
   validateChangeOwnPassword,
 } = require("../validations/user.validation");
+const authMiddleware = require("../middleware/authMiddleware");
+const { requireRole } = require("../middleware/rbacMiddleware");
 
 const router = express.Router();
+
+// Every authenticated user can change their OWN password (they must prove
+// they know the current one \u2014 see changeOwnPassword) \u2014 that's not an
+// admin-only action. Everything else in this file (viewing/creating/
+// editing/deactivating users, and resetting someone else's password
+// without knowing it) is admin-only.
+router.patch(
+  "/:id/change-password",
+  authMiddleware,
+  validateChangeOwnPassword,
+  userController.changeOwnPassword,
+);
+
+router.use(authMiddleware, requireRole("ADMIN", "HOSPITAL_ADMIN"));
 
 router.post("/", validateCreateUser, userController.createUser);
 
@@ -26,12 +42,6 @@ router.patch(
   "/:id/reset-password",
   validateResetPassword,
   userController.resetUserPassword,
-);
-
-router.patch(
-  "/:id/change-password",
-  validateChangeOwnPassword,
-  userController.changeOwnPassword,
 );
 
 module.exports = router;

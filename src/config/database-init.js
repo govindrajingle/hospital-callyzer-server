@@ -216,6 +216,17 @@ const initializeDatabase = async () => {
             ADD COLUMN IF NOT EXISTS consent_marketing BOOLEAN NOT NULL DEFAULT FALSE;
         `);
 
+    // Middle name, preferred contact timing (AM/PM, from the paper form's
+    // "please indicate preferred timings" note), and the referring
+    // patient's own MRN/PRN (so a referral can later be linked to an
+    // actual record, not just a typed name).
+    await client.query(`
+            ALTER TABLE patients
+            ADD COLUMN IF NOT EXISTS middle_name VARCHAR(100),
+            ADD COLUMN IF NOT EXISTS preferred_contact_time VARCHAR(10),
+            ADD COLUMN IF NOT EXISTS referral_patient_mrn VARCHAR(50);
+        `);
+
     await client.query("COMMIT");
 
     console.log("database tables initialized successfully");

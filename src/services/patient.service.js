@@ -8,14 +8,22 @@ const buildMrn = (hospitalId, sequenceNumber) => {
 };
 
 const checkForDuplicates = async (hospitalId, mobile, dateOfBirth) => {
-  return await patientModel.findPotentialDuplicates(hospitalId, mobile, dateOfBirth);
+  return await patientModel.findPotentialDuplicates(
+    hospitalId,
+    mobile,
+    dateOfBirth,
+  );
 };
 
 const createPatient = async (patientData) => {
   const { hospitalId, mobile, dateOfBirth, confirmDuplicate } = patientData;
 
   if (!confirmDuplicate) {
-    const duplicates = await checkForDuplicates(hospitalId, mobile, dateOfBirth);
+    const duplicates = await checkForDuplicates(
+      hospitalId,
+      mobile,
+      dateOfBirth,
+    );
     if (duplicates.length > 0) {
       return { success: false, reason: "POSSIBLE_DUPLICATE", duplicates };
     }
@@ -30,7 +38,6 @@ const createPatient = async (patientData) => {
   const mrn = buildMrn(hospitalId, sequenceNumber);
 
   const patient = await patientModel.createPatient({ ...patientData, mrn });
-
   return { success: true, patient };
 };
 
@@ -48,11 +55,9 @@ const searchPatients = async (hospitalId, filters) => {
   return await patientModel.searchPatients(hospitalId, filters);
 };
 
-// Every field the client didn't send on this update is filled in from the
-// existing row, so a partial edit never silently blanks out fields the
-// user wasn't even shown/editing.
 const FIELD_MAP = [
   ["firstName", "first_name"],
+  ["middleName", "middle_name"],
   ["lastName", "last_name"],
   ["dateOfBirth", "date_of_birth"],
   ["gender", "gender"],
@@ -69,6 +74,7 @@ const FIELD_MAP = [
   ["telephoneResidence", "telephone_residence"],
   ["telephoneOffice", "telephone_office"],
   ["faxNumber", "fax_number"],
+  ["preferredContactTime", "preferred_contact_time"],
   ["bloodGroup", "blood_group"],
   ["occupation", "occupation"],
   ["maritalStatus", "marital_status"],
@@ -77,8 +83,9 @@ const FIELD_MAP = [
   ["ailment", "ailment"],
   ["referralSource", "referral_source"],
   ["referralPersonName", "referral_person_name"],
-  ["consentTerms", "consent_terms"],
-  ["consentMarketing", "consent_marketing"],
+  ["referralPatientMrn", "referral_patient_mrn"],
+  ["termsAccepted", "consent_terms"],
+  ["privacyAccepted", "consent_marketing"],
   ["emergencyContactName", "emergency_contact_name"],
   ["emergencyContactNumber", "emergency_contact_number"],
   ["governmentIdType", "government_id_type"],
@@ -88,13 +95,12 @@ const FIELD_MAP = [
 
 const updatePatient = async (hospitalId, id, updates) => {
   const existing = await patientModel.getPatientById(hospitalId, id);
-  if (!existing) {
-    return null;
-  }
+  if (!existing) return null;
 
   const merged = {};
   for (const [camelKey, snakeKey] of FIELD_MAP) {
-    merged[camelKey] = updates[camelKey] !== undefined ? updates[camelKey] : existing[snakeKey];
+    merged[camelKey] =
+      updates[camelKey] !== undefined ? updates[camelKey] : existing[snakeKey];
   }
 
   return await patientModel.updatePatient(hospitalId, id, merged);
@@ -102,9 +108,7 @@ const updatePatient = async (hospitalId, id, updates) => {
 
 const setPatientActiveStatus = async (hospitalId, id, isActive) => {
   const existing = await patientModel.getPatientById(hospitalId, id);
-  if (!existing) {
-    return null;
-  }
+  if (!existing) return null;
   return await patientModel.setPatientActiveStatus(hospitalId, id, isActive);
 };
 
