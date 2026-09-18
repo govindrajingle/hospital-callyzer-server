@@ -14,44 +14,14 @@ const getNextMrnSequence = async (hospitalId) => {
 
 const createPatient = async (patient) => {
   const {
-    hospitalId,
-    mrn,
-    firstName,
-    middleName,
-    lastName,
-    dateOfBirth,
-    gender,
-    mobile,
-    email,
-    address,
-    street,
-    locality,
-    landmark,
-    city,
-    state,
-    pinCode,
-    country,
-    telephoneResidence,
-    telephoneOffice,
-    faxNumber,
-    preferredContactTime,
-    bloodGroup,
-    occupation,
-    maritalStatus,
-    planType,
-    planExpiresDate,
-    ailment,
-    referralSource,
-    referralPersonName,
-    referralPatientMrn,
-    termsAccepted,
-    privacyAccepted,
-    emergencyContactName,
-    emergencyContactNumber,
-    governmentIdType,
-    governmentIdNumber,
-    photoUrl,
-    createdBy,
+    hospitalId, mrn, firstName, middleName, lastName, dateOfBirth, gender,
+    mobile, email, address, street, locality, landmark, city, state, pinCode, country,
+    telephoneResidence, telephoneOffice, faxNumber, preferredContactTime,
+    bloodGroup, occupation, maritalStatus, planType, planExpiresDate, ailment,
+    referralSource, referralPersonName, referralPatientMrn,
+    consentTerms, consentMarketing,
+    emergencyContactName, emergencyContactNumber,
+    governmentIdType, governmentIdNumber, photoUrl, createdBy,
   } = patient;
 
   const query = `
@@ -75,44 +45,15 @@ const createPatient = async (patient) => {
     `;
 
   const values = [
-    hospitalId,
-    mrn,
-    firstName,
-    middleName || null,
-    lastName || null,
-    dateOfBirth || null,
-    gender || null,
-    mobile,
-    email || null,
-    address || null,
-    street || null,
-    locality || null,
-    landmark || null,
-    city || null,
-    state || null,
-    pinCode || null,
-    country || null,
-    telephoneResidence || null,
-    telephoneOffice || null,
-    faxNumber || null,
-    preferredContactTime || null,
-    bloodGroup || null,
-    occupation || null,
-    maritalStatus || null,
-    planType || null,
-    planExpiresDate || null,
-    ailment || null,
-    referralSource || null,
-    referralPersonName || null,
-    referralPatientMrn || null,
-    termsAccepted === true,
-    privacyAccepted === true,
-    emergencyContactName || null,
-    emergencyContactNumber || null,
-    governmentIdType || null,
-    governmentIdNumber || null,
-    photoUrl || null,
-    createdBy || null,
+    hospitalId, mrn, firstName, middleName || null, lastName || null, dateOfBirth || null, gender || null,
+    mobile, email || null, address || null, street || null, locality || null, landmark || null,
+    city || null, state || null, pinCode || null, country || null,
+    telephoneResidence || null, telephoneOffice || null, faxNumber || null, preferredContactTime || null,
+    bloodGroup || null, occupation || null, maritalStatus || null, planType || null, planExpiresDate || null, ailment || null,
+    referralSource || null, referralPersonName || null, referralPatientMrn || null,
+    consentTerms === true, consentMarketing === true,
+    emergencyContactName || null, emergencyContactNumber || null,
+    governmentIdType || null, governmentIdNumber || null, photoUrl || null, createdBy || null,
   ];
 
   const result = await pool.query(query, values);
@@ -152,9 +93,7 @@ const searchPatients = async (hospitalId, { name, mobile, mrn } = {}) => {
 
   if (name) {
     values.push(`%${name}%`);
-    orConditions.push(
-      `(first_name ILIKE $${values.length} OR last_name ILIKE $${values.length})`,
-    );
+    orConditions.push(`(first_name ILIKE $${values.length} OR last_name ILIKE $${values.length})`);
   }
   if (mobile) {
     values.push(mobile);
@@ -179,51 +118,20 @@ const findPotentialDuplicates = async (hospitalId, mobile, dateOfBirth) => {
         WHERE hospital_id = $1 AND is_active = TRUE AND mobile = $2
           AND ($3::date IS NULL OR date_of_birth = $3::date);
     `;
-  const result = await pool.query(query, [
-    hospitalId,
-    mobile,
-    dateOfBirth || null,
-  ]);
+  const result = await pool.query(query, [hospitalId, mobile, dateOfBirth || null]);
   return result.rows;
 };
 
 const updatePatient = async (hospitalId, id, patient) => {
   const {
-    firstName,
-    middleName,
-    lastName,
-    dateOfBirth,
-    gender,
-    mobile,
-    email,
-    address,
-    street,
-    locality,
-    landmark,
-    city,
-    state,
-    pinCode,
-    country,
-    telephoneResidence,
-    telephoneOffice,
-    faxNumber,
-    preferredContactTime,
-    bloodGroup,
-    occupation,
-    maritalStatus,
-    planType,
-    planExpiresDate,
-    ailment,
-    referralSource,
-    referralPersonName,
-    referralPatientMrn,
-    termsAccepted,
-    privacyAccepted,
-    emergencyContactName,
-    emergencyContactNumber,
-    governmentIdType,
-    governmentIdNumber,
-    photoUrl,
+    firstName, middleName, lastName, dateOfBirth, gender,
+    mobile, email, address, street, locality, landmark, city, state, pinCode, country,
+    telephoneResidence, telephoneOffice, faxNumber, preferredContactTime,
+    bloodGroup, occupation, maritalStatus, planType, planExpiresDate, ailment,
+    referralSource, referralPersonName, referralPatientMrn,
+    consentTerms, consentMarketing,
+    emergencyContactName, emergencyContactNumber,
+    governmentIdType, governmentIdNumber, photoUrl,
   } = patient;
 
   const query = `
@@ -243,43 +151,16 @@ const updatePatient = async (hospitalId, id, patient) => {
     `;
 
   const values = [
-    firstName,
-    middleName || null,
-    lastName || null,
-    dateOfBirth || null,
-    gender || null,
-    mobile,
-    email || null,
-    address || null,
-    street || null,
-    locality || null,
-    landmark || null,
-    city || null,
-    state || null,
-    pinCode || null,
-    country || null,
-    telephoneResidence || null,
-    telephoneOffice || null,
-    faxNumber || null,
-    preferredContactTime || null,
-    bloodGroup || null,
-    occupation || null,
-    maritalStatus || null,
-    planType || null,
-    planExpiresDate || null,
-    ailment || null,
-    referralSource || null,
-    referralPersonName || null,
-    referralPatientMrn || null,
-    termsAccepted === true,
-    privacyAccepted === true,
-    emergencyContactName || null,
-    emergencyContactNumber || null,
-    governmentIdType || null,
-    governmentIdNumber || null,
-    photoUrl || null,
-    id,
-    hospitalId,
+    firstName, middleName || null, lastName || null, dateOfBirth || null, gender || null,
+    mobile, email || null, address || null, street || null, locality || null, landmark || null,
+    city || null, state || null, pinCode || null, country || null,
+    telephoneResidence || null, telephoneOffice || null, faxNumber || null, preferredContactTime || null,
+    bloodGroup || null, occupation || null, maritalStatus || null, planType || null, planExpiresDate || null, ailment || null,
+    referralSource || null, referralPersonName || null, referralPatientMrn || null,
+    consentTerms === true, consentMarketing === true,
+    emergencyContactName || null, emergencyContactNumber || null,
+    governmentIdType || null, governmentIdNumber || null, photoUrl || null,
+    id, hospitalId,
   ];
 
   const result = await pool.query(query, values);
@@ -295,13 +176,6 @@ const setPatientActiveStatus = async (hospitalId, id, isActive) => {
 };
 
 module.exports = {
-  getNextMrnSequence,
-  createPatient,
-  getAllPatients,
-  countPatients,
-  getPatientById,
-  searchPatients,
-  findPotentialDuplicates,
-  updatePatient,
-  setPatientActiveStatus,
+  getNextMrnSequence, createPatient, getAllPatients, countPatients, getPatientById,
+  searchPatients, findPotentialDuplicates, updatePatient, setPatientActiveStatus,
 };

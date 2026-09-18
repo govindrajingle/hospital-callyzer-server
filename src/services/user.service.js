@@ -90,6 +90,10 @@ const changeOwnPassword = async (id, currentPassword, newPassword) => {
   return { success: true, user: updated };
 };
 
+const getDoctorsByHospital = async (hospitalId) => {
+  return await userModel.getDoctorsByHospital(hospitalId);
+};
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -98,4 +102,5 @@ module.exports = {
   setUserActiveStatus,
   setPassword,
   changeOwnPassword,
+  getDoctorsByHospital,
 };

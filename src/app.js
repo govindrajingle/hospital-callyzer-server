@@ -7,6 +7,7 @@ const rolemasterRoutes = require("./routes/rolemaster.routes");
 const userRelationshipRoutes = require("./routes/userrelationship.routes");
 const authRoutes = require("./routes/auth.routes");
 const patientRoutes = require("./routes/patient.routes");
+const appointmentRoutes = require("./routes/appointment.routes");
 
 const requestLogger = require("./middleware/requestLogger");
 const errorHandler = require("./middleware/errorHandler");
@@ -43,6 +44,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/role-masters", rolemasterRoutes);
 app.use("/api/users-relationship", userRelationshipRoutes);
 app.use("/api/patients", patientRoutes);
+app.use("/api/appointments", appointmentRoutes);
 
 app.use(errorHandler);
 

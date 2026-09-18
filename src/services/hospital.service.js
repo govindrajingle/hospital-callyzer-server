@@ -1,7 +1,20 @@
 const hospitalModel = require("../models/hospital.model");
+const appointmentTypeModel = require("../models/appointmenttype.model");
+
+const DEFAULT_APPOINTMENT_TYPES = ["Consultation", "Surgery", "Other"];
 
 const createHospital = async (hospitalData) => {
-  return await hospitalModel.createHospital(hospitalData);
+  const hospital = await hospitalModel.createHospital(hospitalData);
+
+  // Seeds the three baseline categories from the handwritten schema
+  // ("consultation, surgery, other") so the very first appointment booked
+  // at a new hospital doesn't need a "confirm new category?" prompt for
+  // something this ordinary — only genuinely new categories should ask.
+  for (const typeName of DEFAULT_APPOINTMENT_TYPES) {
+    await appointmentTypeModel.createType(hospital.id, typeName, { isSystemDefault: true });
+  }
+
+  return hospital;
 };
 
 const getAllHospitals = async () => {

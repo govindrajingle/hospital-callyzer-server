@@ -227,6 +227,128 @@ const initializeDatabase = async () => {
             ADD COLUMN IF NOT EXISTS referral_patient_mrn VARCHAR(50);
         `);
 
+    // Appointment module — backs the receptionist "Create Appointment"
+    // screen, the doctor's day/week/month schedule, and the patient
+    // profile's Appointments/Billings tabs. Created only by Receptionist,
+    // edited only by Admin (enforced in rbacMiddleware, not here).
+    await client.query(`
+            CREATE TABLE IF NOT EXISTS appointment_type_master (
+                id BIGSERIAL PRIMARY KEY,
+                hospital_id BIGINT NOT NULL,
+                type_name VARCHAR(100) NOT NULL,
+                is_system_default BOOLEAN NOT NULL DEFAULT FALSE,
+                is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+                CONSTRAINT fk_appointment_type_hospital
+                    FOREIGN KEY (hospital_id)
+                    REFERENCES hospital_master(id)
+                    ON DELETE CASCADE,
+
+                CONSTRAINT uq_appointment_type_hospital_name
+                    UNIQUE (hospital_id, type_name)
+            );
+        `);
+
+    await client.query(`
+            CREATE TABLE IF NOT EXISTS appointments (
+                id BIGSERIAL PRIMARY KEY,
+                hospital_id BIGINT NOT NULL,
+                patient_id BIGINT NOT NULL,
+                doctor_id BIGINT NOT NULL,
+                receiver_id BIGINT,
+                receiver_name VARCHAR(200),
+                slot_start TIMESTAMPTZ NOT NULL,
+                slot_end TIMESTAMPTZ NOT NULL,
+                type VARCHAR(100) NOT NULL,
+                fees NUMERIC(10, 2) NOT NULL DEFAULT 0,
+                payment_mode VARCHAR(20) NOT NULL DEFAULT 'cash',
+                status VARCHAR(20) NOT NULL DEFAULT 'scheduled',
+                created_by BIGINT NOT NULL,
+                updated_by BIGINT,
+                is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+                CONSTRAINT fk_appointment_hospital
+                    FOREIGN KEY (hospital_id)
+                    REFERENCES hospital_master(id)
+                    ON DELETE CASCADE,
+
+                CONSTRAINT fk_appointment_patient
+                    FOREIGN KEY (patient_id)
+                    REFERENCES patients(id)
+                    ON DELETE CASCADE,
+
+                CONSTRAINT fk_appointment_doctor
+                    FOREIGN KEY (doctor_id)
+                    REFERENCES users(id),
+
+                CONSTRAINT fk_appointment_receiver
+                    FOREIGN KEY (receiver_id)
+                    REFERENCES users(id),
+
+                CONSTRAINT fk_appointment_created_by
+                    FOREIGN KEY (created_by)
+                    REFERENCES users(id),
+
+                CONSTRAINT fk_appointment_updated_by
+                    FOREIGN KEY (updated_by)
+                    REFERENCES users(id)
+            );
+        `);
+
+    await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_appointments_doctor_slot
+            ON appointments(doctor_id, slot_start);
+        `);
+
+    await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_appointments_patient
+            ON appointments(patient_id);
+        `);
+
+    await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_appointments_hospital
+            ON appointments(hospital_id);
+        `);
+
+    // Who created/edited each appointment and when — separate from
+    // created_at/updated_at so a full history survives even if the row
+    // itself is edited again later.
+    await client.query(`
+            CREATE TABLE IF NOT EXISTS appointment_audit_log (
+                id BIGSERIAL PRIMARY KEY,
+                appointment_id BIGINT NOT NULL,
+                action VARCHAR(20) NOT NULL,
+                performed_by BIGINT NOT NULL,
+                performed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                details JSONB,
+
+                CONSTRAINT fk_appointment_audit_appointment
+                    FOREIGN KEY (appointment_id)
+                    REFERENCES appointments(id)
+                    ON DELETE CASCADE,
+
+                CONSTRAINT fk_appointment_audit_performed_by
+                    FOREIGN KEY (performed_by)
+                    REFERENCES users(id)
+            );
+        `);
+
+    // Backfills the three baseline appointment categories ("consultation,
+    // surgery, other" per the handwritten schema) for any hospital that
+    // existed before the appointment module was added — new hospitals get
+    // these seeded directly in hospital.service.createHospital instead.
+    // ON CONFLICT DO NOTHING makes this safe to re-run on every startup.
+    await client.query(`
+            INSERT INTO appointment_type_master (hospital_id, type_name, is_system_default)
+            SELECT h.id, t.type_name, TRUE
+            FROM hospital_master h
+            CROSS JOIN (VALUES ('Consultation'), ('Surgery'), ('Other')) AS t(type_name)
+            ON CONFLICT (hospital_id, type_name) DO NOTHING;
+        `);
+
     await client.query("COMMIT");
 
     console.log("database tables initialized successfully");

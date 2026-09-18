@@ -24,6 +24,16 @@ router.patch(
   userController.changeOwnPassword,
 );
 
+// Needed by Receptionist when booking an appointment (doctor dropdown) —
+// scoped narrowly (id/name only, DOCTOR role only) rather than opening up
+// the full Users list to non-admins.
+router.get(
+  "/doctors",
+  authMiddleware,
+  requireRole("ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST"),
+  userController.getDoctors,
+);
+
 router.use(authMiddleware, requireRole("ADMIN", "HOSPITAL_ADMIN"));
 
 router.post("/", validateCreateUser, userController.createUser);

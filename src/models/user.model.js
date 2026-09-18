@@ -114,6 +114,23 @@ const setPasswordHash = async (id, passwordHash) => {
   return result.rows[0];
 };
 
+// Used by the appointment booking form's doctor dropdown — scoped to the
+// caller's own hospital (unlike getAllUsers, which is not currently
+// hospital-scoped) and to active DOCTOR-role users only.
+const getDoctorsByHospital = async (hospitalId) => {
+  const query = `
+        SELECT u.id, u.full_name, u.username
+        FROM users u
+        JOIN role_master r ON r.id = u.role_id
+        WHERE u.hospital_id = $1 AND u.is_active = TRUE AND r.role_code = 'DOCTOR'
+        ORDER BY u.full_name;
+    `;
+
+  const result = await pool.query(query, [hospitalId]);
+
+  return result.rows;
+};
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -122,4 +139,5 @@ module.exports = {
   updateUser,
   setUserActiveStatus,
   setPasswordHash,
+  getDoctorsByHospital,
 };

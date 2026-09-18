@@ -134,6 +134,18 @@ const changeOwnPassword = asyncHandler(async (req, res) => {
   });
 });
 
+// Lightweight, hospital-scoped doctor list for the appointment booking
+// form's doctor dropdown — Receptionist needs this but is not otherwise
+// allowed to browse the full Users list.
+const getDoctors = asyncHandler(async (req, res) => {
+  const doctors = await userService.getDoctorsByHospital(req.user.hospitalId);
+
+  res.status(200).json({
+    success: true,
+    data: doctors,
+  });
+});
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -143,4 +155,5 @@ module.exports = {
   activateUser,
   resetUserPassword,
   changeOwnPassword,
+  getDoctors,
 };
