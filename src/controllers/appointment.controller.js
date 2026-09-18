@@ -30,6 +30,25 @@ const dateRangeFromQuery = (query) => {
   return { from, to };
 };
 
+// Powers the booking form's slot picker — returns the full business-hours
+// grid for the day with each slot flagged available/unavailable, so the
+// receptionist only ever picks a slot the doctor is actually free for.
+const getAvailableSlots = asyncHandler(async (req, res) => {
+  const { doctorId, date, excludeAppointmentId } = req.query;
+
+  if (!doctorId || !date) {
+    const error = new Error("doctorId and date are required");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const slots = await appointmentService.getAvailableSlots(
+    req.user.hospitalId, doctorId, date, excludeAppointmentId,
+  );
+
+  res.status(200).json({ success: true, data: slots });
+});
+
 const getTypes = asyncHandler(async (req, res) => {
   const types = await appointmentService.getTypes(req.user.hospitalId);
   res.status(200).json({ success: true, data: types });
@@ -128,6 +147,7 @@ const updateAppointment = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  getAvailableSlots,
   getTypes,
   createAppointment,
   getAllAppointments,

@@ -131,6 +131,24 @@ const getDoctorsByHospital = async (hospitalId) => {
   return result.rows;
 };
 
+// Used by the appointment booking form's "payment collected by" picker —
+// any active staff member of the caller's own hospital can be recorded as
+// the receiver, not just doctors, so this deliberately doesn't filter by
+// role the way getDoctorsByHospital does.
+const getStaffByHospital = async (hospitalId) => {
+  const query = `
+        SELECT u.id, u.full_name, u.username, r.role_code
+        FROM users u
+        JOIN role_master r ON r.id = u.role_id
+        WHERE u.hospital_id = $1 AND u.is_active = TRUE
+        ORDER BY u.full_name;
+    `;
+
+  const result = await pool.query(query, [hospitalId]);
+
+  return result.rows;
+};
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -140,4 +158,5 @@ module.exports = {
   setUserActiveStatus,
   setPasswordHash,
   getDoctorsByHospital,
+  getStaffByHospital,
 };

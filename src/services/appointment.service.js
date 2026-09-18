@@ -4,9 +4,62 @@ const appointmentTypeModel = require("../models/appointmenttype.model");
 
 const DEFAULT_SLOT_MINUTES = 30;
 
+// Clinic business hours used to generate the bookable slot grid for the
+// "available slots" picker. Not sourced from any hospital-settings table
+// (none exists yet) — this is a single fixed window for all hospitals.
+// If a clinic needs per-hospital hours, this is the place to make it
+// hospital-configurable later.
+const BUSINESS_START_HOUR = 9; // 9:00 AM
+const BUSINESS_END_HOUR = 18; // 6:00 PM (last bookable slot starts before this)
+
 const withSlotEnd = (slotStart, slotEnd) => {
   if (slotEnd) return slotEnd;
   return new Date(new Date(slotStart).getTime() + DEFAULT_SLOT_MINUTES * 60000).toISOString();
+};
+
+// Builds the full business-hours slot grid for one calendar day (in the
+// server's local time zone, matching how the booking form already builds
+// slotStart from separate date/time inputs) and marks each slot as
+// available/unavailable against the doctor's existing, non-cancelled
+// appointments for that day — so the receptionist picks a real free slot
+// instead of guessing a time and hitting a 409 conflict.
+const getAvailableSlots = async (hospitalId, doctorId, dateStr, excludeAppointmentId) => {
+  const dayStart = new Date(`${dateStr}T00:00:00`);
+  const dayEnd = new Date(`${dateStr}T23:59:59.999`);
+
+  const existing = await appointmentModel.getAppointmentsByDoctor(
+    hospitalId, doctorId, { from: dayStart, to: dayEnd },
+  );
+  const blocking = existing.filter(
+    (a) => a.status !== "cancelled" && String(a.id) !== String(excludeAppointmentId || ""),
+  );
+
+  const slots = [];
+  const cursor = new Date(`${dateStr}T00:00:00`);
+  cursor.setHours(BUSINESS_START_HOUR, 0, 0, 0);
+  const dayLimit = new Date(`${dateStr}T00:00:00`);
+  dayLimit.setHours(BUSINESS_END_HOUR, 0, 0, 0);
+
+  while (cursor < dayLimit) {
+    const slotStart = new Date(cursor);
+    const slotEnd = new Date(slotStart.getTime() + DEFAULT_SLOT_MINUTES * 60000);
+
+    const isBooked = blocking.some((a) => {
+      const bStart = new Date(a.slot_start);
+      const bEnd = new Date(a.slot_end);
+      return slotStart < bEnd && slotEnd > bStart;
+    });
+
+    slots.push({
+      slotStart: slotStart.toISOString(),
+      slotEnd: slotEnd.toISOString(),
+      isAvailable: !isBooked,
+    });
+
+    cursor.setMinutes(cursor.getMinutes() + DEFAULT_SLOT_MINUTES);
+  }
+
+  return slots;
 };
 
 // The "type" field is a typeable + selectable dropdown (consultation /
@@ -121,4 +174,8 @@ module.exports = {
   getTypes,
   createAppointment,
   updateAppointment,
+  getAvailableSlots,
+  DEFAULT_SLOT_MINUTES,
+  BUSINESS_START_HOUR,
+  BUSINESS_END_HOUR,
 };

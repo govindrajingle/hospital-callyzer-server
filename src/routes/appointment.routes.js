@@ -15,6 +15,14 @@ router.use(authMiddleware);
 
 router.get("/types", requireRole("ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST"), appointmentController.getTypes);
 
+// Slot picker for the booking form — must stay above "/:id" so "available-slots"
+// isn't swallowed as an :id param.
+router.get(
+  "/available-slots",
+  requireRole("ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST"),
+  appointmentController.getAvailableSlots,
+);
+
 // Doctor's own schedule, filterable by ?view=day|week|month&date=...
 router.get("/mine", requireRole("DOCTOR"), appointmentController.getMyAppointments);
 

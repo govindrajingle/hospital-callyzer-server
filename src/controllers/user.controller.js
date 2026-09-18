@@ -146,6 +146,18 @@ const getDoctors = asyncHandler(async (req, res) => {
   });
 });
 
+// Lightweight, hospital-scoped staff list for the appointment booking
+// form's "payment collected by" picker — Receptionist needs this but is
+// not otherwise allowed to browse the full Users list.
+const getStaff = asyncHandler(async (req, res) => {
+  const staff = await userService.getStaffByHospital(req.user.hospitalId);
+
+  res.status(200).json({
+    success: true,
+    data: staff,
+  });
+});
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -156,4 +168,5 @@ module.exports = {
   resetUserPassword,
   changeOwnPassword,
   getDoctors,
+  getStaff,
 };

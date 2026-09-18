@@ -34,6 +34,15 @@ router.get(
   userController.getDoctors,
 );
 
+// Needed by the appointment form's "payment collected by" picker — same
+// narrow scoping rationale as /doctors above.
+router.get(
+  "/staff",
+  authMiddleware,
+  requireRole("ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST"),
+  userController.getStaff,
+);
+
 router.use(authMiddleware, requireRole("ADMIN", "HOSPITAL_ADMIN"));
 
 router.post("/", validateCreateUser, userController.createUser);

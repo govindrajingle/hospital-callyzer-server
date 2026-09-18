@@ -94,6 +94,10 @@ const getDoctorsByHospital = async (hospitalId) => {
   return await userModel.getDoctorsByHospital(hospitalId);
 };
 
+const getStaffByHospital = async (hospitalId) => {
+  return await userModel.getStaffByHospital(hospitalId);
+};
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -103,4 +107,5 @@ module.exports = {
   setPassword,
   changeOwnPassword,
   getDoctorsByHospital,
+  getStaffByHospital,
 };
