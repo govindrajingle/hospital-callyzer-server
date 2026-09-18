@@ -336,6 +336,40 @@ const initializeDatabase = async () => {
             );
         `);
 
+    // Per-doctor consultation hours master — a doctor sets their own working
+    // window and lunch break here; the appointment slot picker generates its
+    // grid from this instead of one fixed clinic-wide window. One row per
+    // doctor. A doctor with no row here just gets the hardcoded default
+    // (9 AM-9 PM, 1-3 PM break) applied in appointment.service.js — this
+    // table only needs a row once a doctor customizes their own hours.
+    await client.query(`
+            CREATE TABLE IF NOT EXISTS doctor_schedule (
+                id BIGSERIAL PRIMARY KEY,
+                hospital_id BIGINT NOT NULL,
+                doctor_id BIGINT NOT NULL,
+                start_time TIME NOT NULL DEFAULT '09:00',
+                end_time TIME NOT NULL DEFAULT '21:00',
+                -- Either both break columns are set or both are NULL (no
+                -- break) — enforced in the validation layer, not here.
+                break_start_time TIME,
+                break_end_time TIME,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+                CONSTRAINT fk_doctor_schedule_hospital
+                    FOREIGN KEY (hospital_id)
+                    REFERENCES hospital_master(id)
+                    ON DELETE CASCADE,
+
+                CONSTRAINT fk_doctor_schedule_doctor
+                    FOREIGN KEY (doctor_id)
+                    REFERENCES users(id)
+                    ON DELETE CASCADE,
+
+                CONSTRAINT uq_doctor_schedule_doctor
+                    UNIQUE (doctor_id)
+            );
+        `);
+
     // Backfills the three baseline appointment categories ("consultation,
     // surgery, other" per the handwritten schema) for any hospital that
     // existed before the appointment module was added — new hospitals get

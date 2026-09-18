@@ -30,9 +30,11 @@ const dateRangeFromQuery = (query) => {
   return { from, to };
 };
 
-// Powers the booking form's slot picker — returns the full business-hours
-// grid for the day with each slot flagged available/unavailable, so the
-// receptionist only ever picks a slot the doctor is actually free for.
+// Powers the booking form's slot picker — returns this doctor's own
+// consultation-hours grid for the day (their working hours + lunch break,
+// either custom-set or the clinic default) with each slot flagged
+// available/booked/past/on-break, so the receptionist only ever picks a
+// slot the doctor is actually free for.
 const getAvailableSlots = asyncHandler(async (req, res) => {
   const { doctorId, date, excludeAppointmentId } = req.query;
 
@@ -42,11 +44,11 @@ const getAvailableSlots = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  const slots = await appointmentService.getAvailableSlots(
+  const { schedule, slots } = await appointmentService.getAvailableSlots(
     req.user.hospitalId, doctorId, date, excludeAppointmentId,
   );
 
-  res.status(200).json({ success: true, data: slots });
+  res.status(200).json({ success: true, data: { schedule, slots } });
 });
 
 const getTypes = asyncHandler(async (req, res) => {
@@ -73,6 +75,14 @@ const createAppointment = asyncHandler(async (req, res) => {
     const error = new Error("this doctor already has an appointment booked in that slot");
     error.statusCode = 409;
     throw error;
+  }
+
+  if (!result.success && result.reason === "OUTSIDE_WORKING_HOURS") {
+    return res.status(422).json({
+      success: false,
+      message: "that time falls outside this doctor's consultation hours or their break",
+      data: { code: "OUTSIDE_WORKING_HOURS", schedule: result.schedule },
+    });
   }
 
   res.status(201).json({
@@ -137,6 +147,14 @@ const updateAppointment = asyncHandler(async (req, res) => {
     const error = new Error("this doctor already has an appointment booked in that slot");
     error.statusCode = 409;
     throw error;
+  }
+
+  if (!result.success && result.reason === "OUTSIDE_WORKING_HOURS") {
+    return res.status(422).json({
+      success: false,
+      message: "that time falls outside this doctor's consultation hours or their break",
+      data: { code: "OUTSIDE_WORKING_HOURS", schedule: result.schedule },
+    });
   }
 
   res.status(200).json({

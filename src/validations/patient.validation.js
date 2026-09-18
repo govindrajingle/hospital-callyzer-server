@@ -33,15 +33,21 @@ const createPatientSchema = Joi.object({
   state: Joi.string().trim().min(2).max(100).required(),
 
   // Everything below is optional.
-  dateOfBirth: Joi.date().iso().max("now").allow(null),
+  // .allow("", null) — not just null — because the frontend form defaults
+  // this field to "" (empty string) when left blank, same as every other
+  // optional field in this schema; Joi.date() alone rejects "" as an
+  // invalid ISO date instead of treating it as "not provided".
+  dateOfBirth: Joi.date().iso().max("now").allow("", null),
   gender: Joi.string().valid("Male", "Female", "Other").allow(null),
   email: Joi.string().trim().email().max(200).allow("", null),
 
   address: Joi.string().trim().max(500).allow("", null),
   locality: Joi.string().trim().max(150).allow("", null),
   landmark: Joi.string().trim().max(150).allow("", null),
-  pinCode: Joi.string().trim().pattern(/^[0-9]{4,10}$/).allow("", null).messages({
-    "string.pattern.base": "PIN code must be 4 to 10 digits",
+  // Not mandatory — but when a PIN code IS given, it must be exactly 6
+  // digits (Indian PIN code format), not any 4-10 digit string.
+  pinCode: Joi.string().trim().pattern(/^[0-9]{6}$/).allow("", null).messages({
+    "string.pattern.base": "PIN code must be exactly 6 digits",
   }),
   country: Joi.string().trim().max(100).allow("", null),
 
@@ -55,8 +61,10 @@ const createPatientSchema = Joi.object({
   maritalStatus: Joi.string().valid(...MARITAL_STATUSES).allow("", null),
 
   planType: Joi.string().trim().max(150).allow("", null),
-  // Explicitly NOT required — a plan/expiry may not be decided at registration time.
-  planExpiresDate: Joi.date().iso().allow(null),
+  // Explicitly NOT required — a plan/expiry may not be decided at
+  // registration time. .allow("", null) for the same reason as
+  // dateOfBirth above: the form sends "" when the field is left blank.
+  planExpiresDate: Joi.date().iso().allow("", null),
   ailment: Joi.string().trim().max(2000).allow("", null),
 
   referralSource: Joi.string().valid(...REFERRAL_SOURCES).allow("", null),

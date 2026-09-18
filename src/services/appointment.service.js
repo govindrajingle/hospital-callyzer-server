@@ -1,29 +1,52 @@
 const { pool } = require("../config/database");
 const appointmentModel = require("../models/appointment.model");
 const appointmentTypeModel = require("../models/appointmenttype.model");
+const doctorScheduleService = require("./doctorschedule.service");
 
 const DEFAULT_SLOT_MINUTES = 30;
-
-// Clinic business hours used to generate the bookable slot grid for the
-// "available slots" picker. Not sourced from any hospital-settings table
-// (none exists yet) — this is a single fixed window for all hospitals.
-// If a clinic needs per-hospital hours, this is the place to make it
-// hospital-configurable later.
-const BUSINESS_START_HOUR = 9; // 9:00 AM
-const BUSINESS_END_HOUR = 18; // 6:00 PM (last bookable slot starts before this)
 
 const withSlotEnd = (slotStart, slotEnd) => {
   if (slotEnd) return slotEnd;
   return new Date(new Date(slotStart).getTime() + DEFAULT_SLOT_MINUTES * 60000).toISOString();
 };
 
-// Builds the full business-hours slot grid for one calendar day (in the
-// server's local time zone, matching how the booking form already builds
-// slotStart from separate date/time inputs) and marks each slot as
-// available/unavailable against the doctor's existing, non-cancelled
-// appointments for that day — so the receptionist picks a real free slot
-// instead of guessing a time and hitting a 409 conflict.
+// hh:mm -> a Date on dateStr's calendar day, in the server's local time
+// zone (matches how the booking form already builds slotStart from
+// separate date/time inputs).
+const timeOnDate = (dateStr, hhmm) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setHours(h, m, 0, 0);
+  return d;
+};
+
+// True if [aStart, aEnd) is fully outside the doctor's working hours, or
+// overlaps their lunch break at all — used both to build the slot grid and
+// to reject a direct create/update request that tries to land outside a
+// doctor's own consultation hours (the slot picker is a UX convenience,
+// not the only guard).
+const violatesSchedule = (dateStr, slotStart, slotEnd, schedule) => {
+  const workStart = timeOnDate(dateStr, schedule.startTime);
+  const workEnd = timeOnDate(dateStr, schedule.endTime);
+  if (slotStart < workStart || slotEnd > workEnd) return true;
+
+  if (schedule.breakStartTime && schedule.breakEndTime) {
+    const breakStart = timeOnDate(dateStr, schedule.breakStartTime);
+    const breakEnd = timeOnDate(dateStr, schedule.breakEndTime);
+    if (slotStart < breakEnd && slotEnd > breakStart) return true;
+  }
+
+  return false;
+};
+
+// Builds this doctor's own consultation-hours slot grid for one calendar
+// day and marks each slot available/booked/past/on-break against their
+// existing, non-cancelled appointments for that day — so the receptionist
+// picks a real free slot instead of guessing a time and hitting a 409
+// conflict or an "outside working hours" rejection.
 const getAvailableSlots = async (hospitalId, doctorId, dateStr, excludeAppointmentId) => {
+  const schedule = await doctorScheduleService.getEffectiveSchedule(hospitalId, doctorId);
+
   const dayStart = new Date(`${dateStr}T00:00:00`);
   const dayEnd = new Date(`${dateStr}T23:59:59.999`);
 
@@ -35,10 +58,11 @@ const getAvailableSlots = async (hospitalId, doctorId, dateStr, excludeAppointme
   );
 
   const slots = [];
-  const cursor = new Date(`${dateStr}T00:00:00`);
-  cursor.setHours(BUSINESS_START_HOUR, 0, 0, 0);
-  const dayLimit = new Date(`${dateStr}T00:00:00`);
-  dayLimit.setHours(BUSINESS_END_HOUR, 0, 0, 0);
+  const cursor = timeOnDate(dateStr, schedule.startTime);
+  const dayLimit = timeOnDate(dateStr, schedule.endTime);
+  const breakStart = schedule.breakStartTime ? timeOnDate(dateStr, schedule.breakStartTime) : null;
+  const breakEnd = schedule.breakEndTime ? timeOnDate(dateStr, schedule.breakEndTime) : null;
+  const now = new Date();
 
   while (cursor < dayLimit) {
     const slotStart = new Date(cursor);
@@ -49,17 +73,25 @@ const getAvailableSlots = async (hospitalId, doctorId, dateStr, excludeAppointme
       const bEnd = new Date(a.slot_end);
       return slotStart < bEnd && slotEnd > bStart;
     });
+    const isBreak = Boolean(breakStart && breakEnd && slotStart < breakEnd && slotEnd > breakStart);
+    // Booking is future-only (matches createAppointmentSchema's
+    // slotStart.greater("now")) — a slot that's already elapsed is neither
+    // "available" nor "booked", it's just not choosable any more.
+    const isPast = slotStart <= now;
 
     slots.push({
       slotStart: slotStart.toISOString(),
       slotEnd: slotEnd.toISOString(),
-      isAvailable: !isBooked,
+      isAvailable: !isBooked && !isPast && !isBreak,
+      isBooked,
+      isPast,
+      isBreak,
     });
 
     cursor.setMinutes(cursor.getMinutes() + DEFAULT_SLOT_MINUTES);
   }
 
-  return slots;
+  return { schedule, slots };
 };
 
 // The "type" field is a typeable + selectable dropdown (consultation /
@@ -83,6 +115,16 @@ const getTypes = async (hospitalId) => {
   return await appointmentTypeModel.getTypesByHospital(hospitalId);
 };
 
+// Local (server time zone) YYYY-MM-DD for a Date/ISO value — matches how
+// timeOnDate/violatesSchedule interpret a "day" for schedule purposes.
+const dateStrOf = (value) => {
+  const d = new Date(value);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 const createAppointment = async (appointmentData) => {
   const { hospitalId, doctorId, type, confirmNewType, createdBy } = appointmentData;
   const slotStart = appointmentData.slotStart;
@@ -91,6 +133,14 @@ const createAppointment = async (appointmentData) => {
   const typeResult = await resolveType(hospitalId, type, confirmNewType);
   if (!typeResult.success) {
     return typeResult;
+  }
+
+  // The slot picker is a UX convenience, not the only guard — reject a
+  // direct booking request that lands outside the doctor's own working
+  // hours or lunch break, the same as a booked-slot conflict would be.
+  const schedule = await doctorScheduleService.getEffectiveSchedule(hospitalId, doctorId);
+  if (violatesSchedule(dateStrOf(slotStart), new Date(slotStart), new Date(slotEnd), schedule)) {
+    return { success: false, reason: "OUTSIDE_WORKING_HOURS", schedule };
   }
 
   const client = await pool.connect();
@@ -157,6 +207,17 @@ const updateAppointment = async (hospitalId, id, updates, updatedBy) => {
     merged.type = typeResult.typeName;
   }
 
+  // Only re-check working hours/break when the slot or doctor is actually
+  // changing — admin still needs to be able to save an unrelated edit (or
+  // mark completed/cancelled/no-show) on an appointment whose original
+  // time no longer fits the doctor's current hours.
+  if (updates.slotStart || updates.doctorId) {
+    const schedule = await doctorScheduleService.getEffectiveSchedule(hospitalId, merged.doctorId);
+    if (violatesSchedule(dateStrOf(merged.slotStart), new Date(merged.slotStart), new Date(merged.slotEnd), schedule)) {
+      return { success: false, reason: "OUTSIDE_WORKING_HOURS", schedule };
+    }
+  }
+
   const conflicts = await appointmentModel.findConflict({
     doctorId: merged.doctorId, slotStart: merged.slotStart, slotEnd: merged.slotEnd, excludeId: id,
   });
@@ -176,6 +237,4 @@ module.exports = {
   updateAppointment,
   getAvailableSlots,
   DEFAULT_SLOT_MINUTES,
-  BUSINESS_START_HOUR,
-  BUSINESS_END_HOUR,
 };

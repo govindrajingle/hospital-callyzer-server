@@ -8,7 +8,14 @@ const createAppointmentSchema = Joi.object({
   doctorId: Joi.number().integer().required(),
   receiverId: Joi.number().integer().allow(null),
   receiverName: Joi.string().trim().max(200).allow("", null),
-  slotStart: Joi.date().iso().required(),
+  // Booking is future-only — a receptionist can't create an appointment in
+  // a slot that has already passed. (Editing/updating an EXISTING
+  // appointment, including marking a past one completed/cancelled/no-show,
+  // is a different action and isn't restricted this way — see
+  // updateAppointmentSchema below.)
+  slotStart: Joi.date().iso().greater("now").required().messages({
+    "date.greater": "appointments can only be booked for a future date and time",
+  }),
   slotEnd: Joi.date().iso().greater(Joi.ref("slotStart")).allow(null),
   type: Joi.string().trim().max(100).required(),
   // If the typed category doesn't already exist for this hospital, the
@@ -23,6 +30,9 @@ const updateAppointmentSchema = Joi.object({
   doctorId: Joi.number().integer(),
   receiverId: Joi.number().integer().allow(null),
   receiverName: Joi.string().trim().max(200).allow("", null),
+  // Deliberately NOT future-restricted like createAppointmentSchema —
+  // admin needs to be able to edit/re-save an appointment (e.g. mark it
+  // completed or no-show) after its slot time has already passed.
   slotStart: Joi.date().iso(),
   slotEnd: Joi.date().iso().allow(null),
   type: Joi.string().trim().max(100),
