@@ -38,10 +38,11 @@ const createPatient = asyncHandler(async (req, res) => {
 const getAllPatients = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit, 10) || 50;
   const offset = parseInt(req.query.offset, 10) || 0;
+  const includeInactive = req.query.includeInactive === "true";
 
   const { patients, total } = await patientService.getAllPatients(
     req.user.hospitalId,
-    { limit, offset },
+    { limit, offset, includeInactive },
   );
 
   res.status(200).json({
@@ -71,11 +72,13 @@ const getPatientById = asyncHandler(async (req, res) => {
 
 const searchPatients = asyncHandler(async (req, res) => {
   const { name, mobile, mrn } = req.query;
+  const includeInactive = req.query.includeInactive === "true";
 
   const patients = await patientService.searchPatients(req.user.hospitalId, {
     name,
     mobile,
     mrn,
+    includeInactive,
   });
 
   res.status(200).json({

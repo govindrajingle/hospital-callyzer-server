@@ -35,7 +35,7 @@ const createPatient = async (patientData) => {
 
 const getAllPatients = async (hospitalId, pagination) => {
   const patients = await patientModel.getAllPatients(hospitalId, pagination);
-  const total = await patientModel.countPatients(hospitalId);
+  const total = await patientModel.countPatients(hospitalId, { includeInactive: pagination?.includeInactive });
   return { patients, total };
 };
 

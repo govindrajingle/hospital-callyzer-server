@@ -60,19 +60,25 @@ const createPatient = async (patient) => {
   return result.rows[0];
 };
 
-const getAllPatients = async (hospitalId, { limit = 50, offset = 0 } = {}) => {
+// includeInactive lets the Patients list optionally surface deactivated
+// patients too (e.g. a "Show inactive" filter) — without it, a deactivated
+// patient would never appear again in any list, so there'd be no row left
+// to click "Activate" on.
+const getAllPatients = async (hospitalId, { limit = 50, offset = 0, includeInactive = false } = {}) => {
+  const activeClause = includeInactive ? "" : "AND is_active = TRUE";
   const query = `
         SELECT * FROM patients
-        WHERE hospital_id = $1 AND is_active = TRUE
+        WHERE hospital_id = $1 ${activeClause}
         ORDER BY id DESC LIMIT $2 OFFSET $3;
     `;
   const result = await pool.query(query, [hospitalId, limit, offset]);
   return result.rows;
 };
 
-const countPatients = async (hospitalId) => {
+const countPatients = async (hospitalId, { includeInactive = false } = {}) => {
+  const activeClause = includeInactive ? "" : "AND is_active = TRUE";
   const result = await pool.query(
-    `SELECT COUNT(*) AS total FROM patients WHERE hospital_id = $1 AND is_active = TRUE;`,
+    `SELECT COUNT(*) AS total FROM patients WHERE hospital_id = $1 ${activeClause};`,
     [hospitalId],
   );
   return parseInt(result.rows[0].total, 10);
@@ -86,8 +92,9 @@ const getPatientById = async (hospitalId, id) => {
   return result.rows[0];
 };
 
-const searchPatients = async (hospitalId, { name, mobile, mrn } = {}) => {
-  const conditions = ["hospital_id = $1", "is_active = TRUE"];
+const searchPatients = async (hospitalId, { name, mobile, mrn, includeInactive = false } = {}) => {
+  const conditions = ["hospital_id = $1"];
+  if (!includeInactive) conditions.push("is_active = TRUE");
   const values = [hospitalId];
   const orConditions = [];
 
